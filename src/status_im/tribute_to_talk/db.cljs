@@ -69,5 +69,6 @@
                   (js/parseInt transaction-block)))
          (.lessThanOrEqualTo (money/bignumber tribute-required)
                              (money/bignumber value))
-         (ethereum/address= (ethereum/public-key->address from-public-key)
+         ;;TODO can't use (ethereum/public-key->address from-public-key) anymore
+         (ethereum/address= nil
                             from))))

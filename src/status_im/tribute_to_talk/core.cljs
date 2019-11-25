@@ -231,7 +231,8 @@
              (not (whitelist/whitelisted-by?
                    (get-in db [:contacts/contacts public-key]))))
     (if-let [contract (contracts/get-address db :status/tribute-to-talk)]
-      (let [address (ethereum/public-key->address public-key)]
+      ;;TODO can't use (ethereum/public-key->address public-key) anymore
+      (let [address nil]
         {:tribute-to-talk/get-tribute
          {:contract contract
           :address  address
