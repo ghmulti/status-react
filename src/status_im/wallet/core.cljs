@@ -3,6 +3,7 @@
             [re-frame.core :as re-frame]
             [status-im.multiaccounts.update.core :as multiaccounts.update]
             [status-im.constants :as constants]
+            [status-im.chat.models.message :as chat.message]
             [status-im.ethereum.core :as ethereum]
             [status-im.ethereum.eip55 :as eip55]
             [status-im.ethereum.json-rpc :as json-rpc]
@@ -375,20 +376,38 @@
         from-address (:address from)]
     (fx/merge cofx
               {:db (dissoc db :wallet/prepare-transaction)}
-              #(if from-chat?
-                 nil;;TODO from chat, send request message or if ens name sign tx and send tx message
-                 (signing/sign % {:tx-obj (if (= symbol :ETH)
-                                            {:to    to-norm
-                                             :from  from-address
-                                             :value amount-hex}
-                                            {:to       (ethereum/normalized-hex address)
-                                             :from     from-address
-                                             :data     (abi-spec/encode
-                                                        "transfer(address,uint256)"
-                                                        [to-norm amount-hex])
-                                             ;;Note: data from qr (eip681)
-                                             :gas      gas
-                                             :gasPrice gasPrice})})))))
+              (fn [cofx]
+                (if from-chat?
+                  ;;TODO from chat, send request message or if ens name sign tx and send tx message
+                  (let [chain-id (ethereum/chain-id db)
+                        current-chat-id (:current-chat-id db)
+                        content (cond-> {:chat-id current-chat-id
+                                         :value (str amount)
+                                         :direction :outgoing
+                                         :command-state
+                                         #_:request-address-for-transaction
+                                         #_:request-address-for-transaction-declined
+                                         #_:request-transaction
+                                         #_:request-transaction-declined
+                                         #_:transaction-pending
+                                         :transaction-sent
+                                         :to "My account"}
+                                  (not= symbol :ETH) (assoc :contract address))]
+                    (chat.message/send-message cofx {:chat-id current-chat-id
+                                                     :content-type "command/transaction"
+                                                     :content content}))
+                  (signing/sign cofx {:tx-obj (if (= symbol :ETH)
+                                                {:to    to-norm
+                                                 :from  from-address
+                                                 :value amount-hex}
+                                                {:to       (ethereum/normalized-hex address)
+                                                 :from     from-address
+                                                 :data     (abi-spec/encode
+                                                            "transfer(address,uint256)"
+                                                            [to-norm amount-hex])
+                                                 ;;Note: data from qr (eip681)
+                                                 :gas      gas
+                                                 :gasPrice gasPrice})}))))))
 
 (fx/defn set-and-validate-amount-request
   {:events [:wallet.request/set-and-validate-amount]}

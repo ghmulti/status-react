@@ -10,6 +10,7 @@
             [status-im.ui.components.list-selection :as list-selection]
             [status-im.ui.components.popup-menu.views :as desktop.pop-up]
             [status-im.ui.components.react :as react]
+            [status-im.utils.money :as money]
             [status-im.ui.screens.chat.message.sheets :as sheets]
             [status-im.ui.screens.chat.photos :as photos]
             [status-im.ui.screens.chat.styles.message.message :as style]
@@ -201,6 +202,183 @@
    [react/image {:style {:margin 10 :width 140 :height 140}
                  :source {:uri (contenthash/url (-> content :sticker :hash))}}]])
 
+(defn- command-pending-status
+  [command-state direction to]
+  [react/view {:style {:flex-direction :row
+                       :height 28
+                       :align-items :center
+                       :border-width 1
+                       :border-color colors/gray-lighter
+                       :border-radius 16
+                       :padding-horizontal 8
+                       :margin-right 12
+                       :margin-bottom 2}}
+   [vector-icons/icon :tiny-icons/tiny-pending
+    {:width 16
+     :height 16
+     :color colors/gray
+     :container-style {:margin-right 6}}]
+   [react/text {:style {:color colors/gray
+                        :font-weight "500"
+                        :line-height 16
+                        :margin-right 4
+                        :font-size 13}}
+    (if (and (= command-state :request-transaction)
+             (= direction :incoming))
+      (str (i18n/label :t/shared) " " to)
+      (i18n/label (case command-state
+                    :transaction-pending
+                    :t/status-pending
+                    :request-address-for-transaction
+                    :t/address-requested
+                    :request-transaction
+                    :t/address-received)))]])
+
+(defn- command-final-status
+  [command-state]
+  [react/view {:style {:flex-direction :row
+                       :height 28
+                       :align-items :center
+                       :border-width 1
+                       :border-color colors/gray-lighter
+                       :border-radius 16
+                       :padding-horizontal 8
+                       :margin-right 12
+                       :margin-bottom 2}}
+   (case command-state
+     (:request-address-for-transaction-declined
+      :request-transaction-declined)
+     [vector-icons/icon :tiny-icons/tiny-warning
+      {:width 16
+       :height 16
+       :container-style {:margin-right 6}}]
+     [vector-icons/icon :tiny-icons/tiny-check
+      {:width 16
+       :height 16
+       :container-style {:margin-right 6}}])
+   [react/text {:style {:font-weight "500"
+                        :margin-right 4
+                        :line-height 16
+                        :font-size 13}}
+    (i18n/label (case command-state
+                  (:request-address-for-transaction-declined
+                   :request-transaction-declined)
+                  :t/transaction-declined
+                  :transaction-sent
+                  :t/status-confirmed))]])
+
+(defn- command-status-and-timestamp
+  [command-state direction to timestamp-str]
+  [react/view {:style {:flex-direction :row
+                       :justify-content :space-between}}
+   (case command-state
+     (:transaction-pending :request-transaction)
+     [command-pending-status command-state direction to]
+     :request-address-for-transaction
+     (if (= direction :outgoing)
+       [command-pending-status command-state direction to]
+       [react/view])
+     [command-final-status command-state])
+   [react/text {:style {:font-size 10
+                        :line-height 12
+                        :text-align-vertical :bottom
+                        :color colors/gray}}
+    timestamp-str]])
+
+(defn- command-actions
+  [accept-label on-accept on-decline]
+  [react/view
+   [react/touchable-highlight
+    {:style {:border-color colors/gray-lighter
+             :border-top-width 1
+             :margin-top 8
+             :margin-horizontal -12
+             :padding-horizontal 15
+             :padding-vertical 10}}
+    [react/text {:style {:text-align :center
+                         :color colors/blue
+                         :font-weight "500"
+                         :font-size 15
+                         :line-height 22}}
+     (i18n/label accept-label)]]
+   [react/touchable-highlight
+    {:style {:border-color colors/gray-lighter
+             :border-top-width 1
+             :margin-horizontal -12
+             :padding-top 10}}
+    [react/text {:style {:text-align :center
+                         :color colors/blue
+                         :font-size 15
+                         :line-height 22}}
+     (i18n/label :t/decline)]]])
+
+(defn- command-transaction-info
+  [contract value]
+  (let [{:keys [symbol icon decimals] :as token}
+        (if contract
+          (get @(re-frame/subscribe [:wallet/chain-tokens]) contract)
+          @(re-frame/subscribe [:ethereum/native-currency]))
+        amount (money/internal->formatted value symbol decimals)
+        {:keys [code] :as currency}
+        @(re-frame/subscribe [:wallet/currency])
+        prices @(re-frame/subscribe [:prices])
+        amount-fiat
+        (money/fiat-amount-value amount symbol (keyword code) prices)]
+    [react/view {:style {:flex-direction :row
+                         :margin-top 8
+                         :margin-bottom 12}}
+     [react/image (-> icon
+                      (update :source #(%))
+                      (assoc-in [:style :height] 24)
+                      (assoc-in [:style :width] 24))]
+     [react/view {:style {:margin-left 6}}
+      [react/text {:style {:margin-bottom 2
+                           :font-size 20
+                           :line-height 24}}
+       (str amount " " (name symbol))]
+      [react/text {:style {:font-size 12
+                           :line-height 16
+                           :color colors/gray}}
+       (str amount-fiat " " code)]]]))
+
+(defmethod message-content "command/transaction"
+  [wrapper {:keys [content timestamp-str] :as message}]
+  (let [{:keys [contract value to command-state direction]} content
+        command-state (keyword command-state)
+        direction :incoming #_(keyword direction)]
+    [wrapper message
+     [react/view {:padding-horizontal 12
+                  :padding-bottom 10
+                  :padding-top 10
+                  :border-width 1
+                  :border-color colors/gray-lighter
+                  :border-radius      16
+                  (if (= direction :outgoing)
+                    :border-bottom-right-radius
+                    :border-bottom-left-radius) 4
+                  :background-color :white}
+      [react/text {:style {:font-size 13
+                           :line-height 18
+                           :font-weight "500"
+                           :color colors/gray}}
+       (case direction
+         :outgoing (str "↑ " (i18n/label :t/outgoing-transaction))
+         :incoming (str "↓ " (i18n/label :t/incoming-transaction)))]
+      [command-transaction-info contract value]
+      [command-status-and-timestamp
+       command-state direction to timestamp-str]
+      (if (= direction :incoming)
+        (when (= command-state :request-address-for-transaction)
+          [command-actions
+           :t/accept-and-share-address
+           #() ;; TODO select account action
+           #()])
+        (when (= command-state :request-transaction)
+          [command-actions
+           :t/sign-and-send
+           #() ;; TODO sign transaction action
+           #()]))]]))
+
 (defmethod message-content :default
   [wrapper {:keys [content-type] :as message}]
   [wrapper message
@@ -215,14 +393,16 @@
 (defn message-not-sent-text
   [chat-id message-id]
   [react/touchable-highlight
-   {:on-press (fn [] (if platform/desktop?
-                       (desktop.pop-up/show-desktop-menu
-                        (desktop.pop-up/get-message-menu-items chat-id message-id))
-                       (do
-                         (re-frame/dispatch [:bottom-sheet/show-sheet
-                                             {:content        (sheets/options chat-id message-id)
-                                              :content-height 200}])
-                         (react/dismiss-keyboard!))))}
+   {:on-press
+    (fn [] (if platform/desktop?
+             (desktop.pop-up/show-desktop-menu
+              (desktop.pop-up/get-message-menu-items chat-id message-id))
+             (do
+               (re-frame/dispatch
+                [:bottom-sheet/show-sheet
+                 {:content        (sheets/options chat-id message-id)
+                  :content-height 200}])
+               (react/dismiss-keyboard!))))}
    [react/view style/not-sent-view
     [react/text {:style style/not-sent-text}
      (i18n/label (if platform/desktop?

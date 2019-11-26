@@ -16,7 +16,6 @@
             [status-im.transport.message.protocol :as protocol]
             [status-im.transport.message.transit :as transit]
             [status-im.transport.utils :as transport.utils]
-            [status-im.tribute-to-talk.core :as tribute-to-talk]
             [status-im.ui.components.react :as react]
             [status-im.utils.clocks :as utils.clocks]
             [status-im.utils.datetime :as time]
@@ -200,10 +199,7 @@
 
 (fx/defn send-message
   [{:keys [db now] :as cofx} {:keys [chat-id] :as message}]
-  (let [{:keys [chats]}  db
-        message-data                        (-> message
-                                                (tribute-to-talk/add-transaction-hash db))]
-    (protocol/send-chat-message cofx message-data)))
+  (protocol/send-chat-message cofx message))
 
 (fx/defn toggle-expand-message
   [{:keys [db]} chat-id message-id]

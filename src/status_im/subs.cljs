@@ -599,54 +599,55 @@
  (fn [[contacts chats multiaccount]]
    (chat.db/active-chats contacts chats multiaccount)))
 
-(defn enrich-current-one-to-one-chat
-  [{:keys [contact] :as current-chat} my-public-key ttt-settings
-   chain-keyword prices currency]
-  (let [{:keys [tribute-to-talk]} contact
-        {:keys [disabled? snt-amount message]} tribute-to-talk
-        whitelisted-by? (whitelist/whitelisted-by? contact)
-        loading?        (and (not whitelisted-by?)
-                             (not tribute-to-talk))
-        show-input?     (or whitelisted-by?
-                            disabled?)
-        token           (case chain-keyword
-                          :mainnet :SNT
-                          :STT)
-        tribute-status  (if loading?
-                          :loading
-                          (tribute-to-talk.db/tribute-status contact))
-        tribute-label   (tribute-to-talk.db/status-label tribute-status snt-amount)]
+;; TODO: this is no useful without tribute to talk
+#_(defn enrich-current-one-to-one-chat
+    [{:keys [contact] :as current-chat} my-public-key ttt-settings
+     chain-keyword prices currency]
+    (let [{:keys [tribute-to-talk]} contact
+          {:keys [disabled? snt-amount message]} tribute-to-talk
+          whitelisted-by? (whitelist/whitelisted-by? contact)
+          loading?        (and (not whitelisted-by?)
+                               (not tribute-to-talk))
+          show-input?     (or whitelisted-by?
+                              disabled?)
+          token           (case chain-keyword
+                            :mainnet :SNT
+                            :STT)
+          tribute-status  (if loading?
+                            :loading
+                            (tribute-to-talk.db/tribute-status contact))
+          tribute-label   (tribute-to-talk.db/status-label tribute-status snt-amount)]
 
-    (cond-> (assoc current-chat
-                   :tribute-to-talk/tribute-status tribute-status
-                   :tribute-to-talk/tribute-label tribute-label)
+      (cond-> (assoc current-chat
+                     :tribute-to-talk/tribute-status tribute-status
+                     :tribute-to-talk/tribute-label tribute-label)
 
-      (#{:required :pending :paid} tribute-status)
-      (assoc :tribute-to-talk/snt-amount
-             (tribute-to-talk.db/from-wei snt-amount)
-             :tribute-to-talk/message
-             message
-             :tribute-to-talk/fiat-amount   (if snt-amount
-                                              (money/fiat-amount-value
-                                               snt-amount
-                                               token
-                                               (-> currency :code keyword)
-                                               prices)
-                                              "0")
-             :tribute-to-talk/fiat-currency (:code currency)
-             :tribute-to-talk/token         (str " " (name token)))
+        (#{:required :pending :paid} tribute-status)
+        (assoc :tribute-to-talk/snt-amount
+               (tribute-to-talk.db/from-wei snt-amount)
+               :tribute-to-talk/message
+               message
+               :tribute-to-talk/fiat-amount   (if snt-amount
+                                                (money/fiat-amount-value
+                                                 snt-amount
+                                                 token
+                                                 (-> currency :code keyword)
+                                                 prices)
+                                                "0")
+               :tribute-to-talk/fiat-currency (:code currency)
+               :tribute-to-talk/token         (str " " (name token)))
 
-      (tribute-to-talk.db/enabled? ttt-settings)
-      (assoc :tribute-to-talk/received? (tribute-to-talk.db/tribute-received?
-                                         contact))
+        (tribute-to-talk.db/enabled? ttt-settings)
+        (assoc :tribute-to-talk/received? (tribute-to-talk.db/tribute-received?
+                                           contact))
 
-      (= tribute-status :required)
-      (assoc :tribute-to-talk/on-share-my-profile
-             #(re-frame/dispatch
-               [:profile/share-profile-link my-public-key]))
+        (= tribute-status :required)
+        (assoc :tribute-to-talk/on-share-my-profile
+               #(re-frame/dispatch
+                 [:profile/share-profile-link my-public-key]))
 
-      show-input?
-      (assoc :show-input? true))))
+        show-input?
+        (assoc :show-input? true))))
 
 (defn enrich-current-chat
   [{:keys [messages chat-id might-have-join-time-messages?] :as chat}
@@ -683,16 +684,8 @@
  :<- [:mailserver/ranges]
  :<- [:chats/content-layout-height]
  :<- [:chats/current-chat-ui-prop :input-height]
- :<- [:tribute-to-talk/settings]
- :<- [:ethereum/chain-keyword]
- :<- [:prices]
- :<- [:wallet/currency]
- (fn [[{:keys [group-chat
-               chat-id
-               contact
-               messages]
-        :as current-chat} my-public-key ranges height
-       input-height ttt-settings chain-keyword prices currency]]
+ (fn [[{:keys [group-chat chat-id contact messages] :as current-chat}
+       my-public-key ranges height input-height]]
    (when current-chat
      (cond-> (enrich-current-chat current-chat ranges height input-height)
        (empty? messages)
@@ -707,8 +700,7 @@
        (assoc :show-input? true)
 
        (not group-chat)
-       (enrich-current-one-to-one-chat my-public-key ttt-settings
-                                       chain-keyword prices currency)))))
+       (assoc :show-input? true)))))
 
 (re-frame/reg-sub
  :chats/current-chat-message
@@ -1123,6 +1115,13 @@
              (i18n/format-currency (:code currency) false))
          "0"))
      "...")))
+
+(re-frame/reg-sub
+ :wallet/chain-tokens
+ :<- [:wallet/all-tokens]
+ :<- [:ethereum/chain-keyword]
+ (fn [[all-tokens chain]]
+   (get all-tokens chain)))
 
 (re-frame/reg-sub
  :wallet/sorted-chain-tokens
