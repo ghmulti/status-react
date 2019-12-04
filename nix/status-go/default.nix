@@ -1,5 +1,5 @@
 { config, stdenv, callPackage, mkShell, mergeSh, buildGoPackage, go,
-  fetchFromGitHub, mkFilter, openjdk, androidPkgs, xcodeWrapper }:
+  fetchFromGitHub, mkFilter, openjdk, androidPkgs, xcodeWrapper, targetNimbus ? false }:
 
 let
   inherit (stdenv.lib)
@@ -9,8 +9,9 @@ let
 
   utils = callPackage ./utils.nix { inherit xcodeWrapper; };
   gomobile = callPackage ./gomobile { inherit (androidPkgs) platform-tools; inherit xcodeWrapper utils buildGoPackage; };
+  nimbus = if targetNimbus then callPackage ./nimbus { } else { wrappers-android = { }; };
   buildStatusGoDesktopLib = callPackage ./build-desktop-status-go.nix { inherit buildGoPackage go xcodeWrapper utils; };
-  buildStatusGoMobileLib = callPackage ./build-mobile-status-go.nix { inherit buildGoPackage go gomobile xcodeWrapper utils; };
+  buildStatusGoMobileLib = callPackage ./build-mobile-status-go.nix { inherit buildGoPackage go gomobile xcodeWrapper utils androidPkgs; nimbus = nimbus.wrappers-android.x86; };
   srcData =
     # If config.status_go.src_override is defined, instruct Nix to use that path to build status-go
     if (attrByPath ["status_go" "src_override"] "" config) != "" then rec {
@@ -51,16 +52,19 @@ let
       };
 
   mobileConfigs = {
-    android = {
-      name = "android";
-      outputFileName = "status-go-${srcData.shortRev}.aar";
-      envVars = [
-        "ANDROID_HOME=${androidPkgs.androidsdk}/libexec/android-sdk"
-        "ANDROID_NDK_HOME=${androidPkgs.ndk-bundle}/libexec/android-sdk/ndk-bundle"
-        "PATH=${makeBinPath [ openjdk ]}:$PATH"
-      ];
-      gomobileExtraFlags = [ "-androidapi 18" ];
-    };
+    android =
+      let
+        androidLevel = if targetNimbus then "23" else "18"; # Target Android API level 23 when linking with Nimbus to avoid undefined stderr/stdout symbols when linking
+      in {
+        name = "android";
+        outputFileName = "status-go-${srcData.shortRev}.aar";
+        envVars = [
+          "ANDROID_HOME=${androidPkgs.androidsdk}/libexec/android-sdk"
+          "ANDROID_NDK_HOME=${androidPkgs.ndk-bundle}/libexec/android-sdk/ndk-bundle"
+          "PATH=${makeBinPath [ openjdk ]}:$PATH"
+        ];
+        gomobileExtraFlags = [ "-androidapi ${androidLevel}" ];
+      };
     ios = {
       name = "ios";
       outputFileName = "Statusgo.framework";
@@ -80,7 +84,7 @@ let
   };
   currentHostConfig = if stdenv.isDarwin then hostConfigs.darwin else hostConfigs.linux;
 
-  goBuildFlags = "-v";
+  goBuildFlags = "-v -tags='nimbus'";
   # status-go params to be set at build time, important for About section and metrics
   goBuildParams = {
     GitCommit = srcData.rev;

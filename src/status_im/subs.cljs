@@ -315,7 +315,7 @@
  :disconnected?
  :<- [:peers-count]
  (fn [peers-count]
-   (zero? peers-count)))
+   false))
 
 (re-frame/reg-sub
  :offline?

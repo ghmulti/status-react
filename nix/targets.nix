@@ -1,4 +1,4 @@
-{ 
+{
   config ? {},
   pkgs ? import ./pkgs.nix { inherit config; }
 }:
@@ -9,9 +9,10 @@ let
     inherit stdenv;
   };
 
-  status-go = callPackage ./status-go { 
+  status-go = callPackage ./status-go {
     inherit (mobile) xcodeWrapper;
     androidPkgs = mobile.android.androidComposition;
+    targetNimbus = true;
   };
 
   desktop = callPackage ./desktop {

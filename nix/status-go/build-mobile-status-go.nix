@@ -1,5 +1,5 @@
 { stdenv, utils, callPackage,
-  buildGoPackage, go, gomobile, openjdk, xcodeWrapper }:
+  buildGoPackage, go, gomobile, nimbus, androidPkgs, openjdk, xcodeWrapper }:
 
 { owner, repo, rev, cleanVersion, goPackagePath, src, host,
 
@@ -8,7 +8,7 @@
   config } @ args':
 
 let
-  inherit (stdenv.lib) concatStringsSep makeBinPath optional;
+  inherit (stdenv.lib) concatStringsSep makeBinPath optional optionals;
 
   targetConfig = config;
   buildStatusGo = callPackage ./build-status-go.nix {
@@ -28,9 +28,13 @@ let
     buildPhase =
       let
         NIX_GOWORKDIR = "$NIX_BUILD_TOP/go-build";
-        CGO_LDFLAGS = concatStringsSep " " goBuildLdFlags;
+        CGO_LDFLAGS = concatStringsSep " " (goBuildLdFlags ++ [ "-extldflags=-Wl,--allow-multiple-definition" ]);
       in with targetConfig; ''
       mkdir ${NIX_GOWORKDIR}
+
+      # Copy the Nimbus API artifacts to the expected vendor location
+      cp ${nimbus}/include/* ${nimbus}/lib/libnimbus.a \
+         $NIX_BUILD_TOP/go/src/${goPackagePath}/vendor/${goPackagePath}/eth-node/bridge/nimbus
 
       export GO111MODULE=off
       export GOPATH=${gomobile.dev}:$GOPATH
@@ -38,8 +42,8 @@ let
       export NIX_GOWORKDIR=${NIX_GOWORKDIR}
       export ${concatStringsSep " " envVars}
       gomobile bind \
-        -target=${name} \
-        -ldflags='${CGO_LDFLAGS}' \
+        -target=${name}/386 \
+        -ldflags="${CGO_LDFLAGS}" \
         ${concatStringsSep " " gomobileExtraFlags} \
         ${goBuildFlags} \
         -o ${outputFileName} \
