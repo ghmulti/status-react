@@ -54,8 +54,8 @@
   {:db {:multiaccount
         {:address "954d4393515747ea75808a0301fb73317ae1e460"
          :network "testnet_rpc"
-         :networks/networks {"testnet_rpc" {:config {:NetworkId 3}}}
-         :settings {:tribute-to-talk {:testnet {:snt-amount "1000000000000000000"}}}}
+         :networks/networks {"testnet_rpc" {:config {:NetworkId 3}}}}
+        :tribute-to-talk {:testnet {:snt-amount "1000000000000000000"}}
         :contacts/contacts
         {recipient-pk {:name "bob"
                        :address recipient-address
@@ -101,7 +101,7 @@
       (let [result (tribute-to-talk/check-tribute {:db test-db} my-public-key)]
         (is (= (-> test-db
                    (assoc :navigation/screen-params {:tribute-to-talk {:unavailable? true}})
-                   (assoc-in [:multiaccount :settings] {:tribute-to-talk {:mainnet nil}}))
+                   (assoc-in [:multiaccount :tribute-to-talk] {:mainnet nil}))
                (:db result)))))
 
     (testing "No contract in network, another public key"

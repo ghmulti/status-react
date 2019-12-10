@@ -83,21 +83,21 @@
    :last-updated                         0
    :address                              "7540c34d6c4082391f12468580a9a4e0724c6755"
    :mnemonic                             "tumble gorilla neglect dumb budget involve tennis ocean diary eagle lady ring"
-   :bootnodes                            {}
+   :custom-bootnodes                     {}
    :signing-phrase                       "bull exam weed"
    :signed-up?                           true
    :name                                 "name"
    :last-request                         nil
    :desktop-notifications?               false
-   :settings                             {:preview-privacy? true
-                                          :fleet        :eth.beta
-                                          :wallet       {:visible-tokens {:testnet #{:STT
-                                                                                     :HND}
-                                                                          :mainnet #{:SNT}
-                                                                          :rinkeby #{:MOKSHA
-                                                                                     :KDO}
-                                                                          :xdai    #{}
-                                                                          :poa     #{}}}}
+   :wallet/visible-tokens                {:testnet #{:STT
+                                                     :HND}
+                                          :mainnet #{:SNT}
+                                          :rinkeby #{:MOKSHA
+                                                     :KDO}
+                                          :xdai    #{}
+                                          :poa     #{}}
+   :preview-privacy? true
+   :fleet        :eth.beta
    :networks/networks                    {"testnet"     {:id      "testnet"
                                                          :name    "Ropsten"
                                                          :config  {:NetworkId      3
