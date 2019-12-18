@@ -45,6 +45,7 @@
             [status-im.transport.core :as transport]
             [status-im.transport.message.core :as transport.message]
             status-im.wallet.choose-recipient.core
+            status-im.commands.core
             status-im.wallet.collectibles.core
             status-im.wallet.accounts.core
             [status-im.ui.components.bottom-sheet.core :as bottom-sheet]

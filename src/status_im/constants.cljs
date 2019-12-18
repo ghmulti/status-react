@@ -11,11 +11,20 @@
 (def content-type-sticker 2)
 (def content-type-status 3)
 (def content-type-emoji 4)
+(def content-type-command 5)
 
 (def message-type-one-to-one 1)
 (def message-type-public-group 2)
 (def message-type-private-group 3)
 (def message-type-private-group-system-message 4)
+
+(def command-state-request-address-for-transaction 1)
+(def command-state-request-address-for-transaction-declined 2)
+(def command-state-request-address-for-transaction-accepted 3)
+(def command-state-request-transaction 4)
+(def command-state-request-transaction-declined 5)
+(def command-state-transaction-pending 6)
+(def command-state-transaction-sent 7)
 
 (def desktop-content-types
   #{content-type-text content-type-emoji content-type-status})

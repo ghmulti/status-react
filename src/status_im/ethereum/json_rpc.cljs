@@ -66,6 +66,8 @@
    "shhext_deleteChat" {}
    "shhext_saveContact" {}
    "shhext_verifyENSNames" {}
+   "shhext_requestAddressForTransaction" {}
+   "shhext_acceptRequestAddressForTransaction" {}
    "status_chats" {}
    "wallet_getTransfers" {}
    "wallet_getTokensBalances" {}

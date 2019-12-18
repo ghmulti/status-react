@@ -379,23 +379,12 @@
               (fn [cofx]
                 (if from-chat?
                   ;;TODO from chat, send request message or if ens name sign tx and send tx message
-                  (let [chain-id (ethereum/chain-id db)
-                        current-chat-id (:current-chat-id db)
-                        content (cond-> {:chat-id current-chat-id
-                                         :value (str amount)
-                                         :direction :outgoing
-                                         :command-state
-                                         #_:request-address-for-transaction
-                                         #_:request-address-for-transaction-declined
-                                         #_:request-transaction
-                                         #_:request-transaction-declined
-                                         #_:transaction-pending
-                                         :transaction-sent
-                                         :to "My account"}
-                                  (not= symbol :ETH) (assoc :contract address))]
-                    (chat.message/send-message cofx {:chat-id current-chat-id
-                                                     :content-type "command/transaction"
-                                                     :content content}))
+                  {::json-rpc/call [{:method "shhext_requestAddressForTransaction"
+                                     :params [(:current-chat-id db)
+                                              "1000"
+                                              (when-not (= symbol :ETH)
+                                                address)]
+                                     :on-success #(re-frame/dispatch [:transport/message-sent % 1])}]}
                   (signing/sign cofx {:tx-obj (if (= symbol :ETH)
                                                 {:to    to-norm
                                                  :from  from-address
