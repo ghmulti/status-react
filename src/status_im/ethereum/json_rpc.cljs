@@ -68,6 +68,8 @@
    "shhext_verifyENSNames" {}
    "shhext_requestAddressForTransaction" {}
    "shhext_acceptRequestAddressForTransaction" {}
+   "shhext_declineRequestAddressForTransaction" {}
+   "shhext_sendTransaction" {}
    "status_chats" {}
    "wallet_getTransfers" {}
    "wallet_getTokensBalances" {}

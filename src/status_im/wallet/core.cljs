@@ -367,9 +367,26 @@
   [{:keys [db]} amount]
   {:db (assoc-in db [:wallet/prepare-transaction :amount-text] amount)})
 
-(fx/defn sign-transaction-button-clicked
-  {:events  [:wallet.ui/sign-transaction-button-clicked]}
+(fx/defn sign-transaction-button-clicked-from-chat
+  {:events  [:wallet.ui/sign-transaction-button-clicked-from-chat]}
   [{:keys [db] :as cofx} {:keys [to amount from token from-chat? gas gasPrice]}]
+  (let [{:keys [symbol address]} token
+        to-norm (ethereum/normalized-hex (if (string? to) to (:address to)))
+        from-address (:address from)]
+    (fx/merge cofx
+              {:db (dissoc db :wallet/prepare-transaction)
+              ;;TODO from chat, send request message or if ens name sign tx and send tx message
+              ::json-rpc/call [{:method "shhext_requestAddressForTransaction"
+                                :params [(:current-chat-id db)
+                                         from-address
+                                         amount
+                                         (when-not (= symbol :ETH)
+                                           address)]
+                                :on-success #(re-frame/dispatch [:transport/message-sent % 1])}]})))
+
+(fx/defn sign-transaction-button-clicked-from-command
+  {:events  [:wallet.ui/sign-transaction-button-clicked-from-command]}
+  [{:keys [db] :as cofx} {:keys [to amount from token gas gasPrice]}]
   (let [{:keys [symbol address]} token
         amount-hex (str "0x" (abi-spec/number-to-hex amount))
         to-norm (ethereum/normalized-hex (if (string? to) to (:address to)))
@@ -377,26 +394,41 @@
     (fx/merge cofx
               {:db (dissoc db :wallet/prepare-transaction)}
               (fn [cofx]
-                (if from-chat?
-                  ;;TODO from chat, send request message or if ens name sign tx and send tx message
-                  {::json-rpc/call [{:method "shhext_requestAddressForTransaction"
-                                     :params [(:current-chat-id db)
-                                              "1000"
-                                              (when-not (= symbol :ETH)
-                                                address)]
-                                     :on-success #(re-frame/dispatch [:transport/message-sent % 1])}]}
-                  (signing/sign cofx {:tx-obj (if (= symbol :ETH)
-                                                {:to    to-norm
-                                                 :from  from-address
-                                                 :value amount-hex}
-                                                {:to       (ethereum/normalized-hex address)
-                                                 :from     from-address
-                                                 :data     (abi-spec/encode
-                                                            "transfer(address,uint256)"
-                                                            [to-norm amount-hex])
-                                                 ;;Note: data from qr (eip681)
-                                                 :gas      gas
-                                                 :gasPrice gasPrice})}))))))
+                (signing/sign cofx {:tx-obj (if (= symbol :ETH)
+                                              {:to    to-norm
+                                               :from  from-address
+                                               :value amount-hex}
+                                              {:to       (ethereum/normalized-hex address)
+                                               :from     from-address
+                                               :data     (abi-spec/encode
+                                                          "transfer(address,uint256)"
+                                                          [to-norm amount-hex])
+                                               ;;Note: data from qr (eip681)
+                                               :gas      gas
+                                               :gasPrice gasPrice})})))))
+
+(fx/defn sign-transaction-button-clicked
+  {:events  [:wallet.ui/sign-transaction-button-clicked]}
+  [{:keys [db] :as cofx} {:keys [to amount from token gas gasPrice]}]
+  (let [{:keys [symbol address]} token
+        amount-hex (str "0x" (abi-spec/number-to-hex amount))
+        to-norm (ethereum/normalized-hex (if (string? to) to (:address to)))
+        from-address (:address from)]
+    (fx/merge cofx
+              {:db (dissoc db :wallet/prepare-transaction)}
+              (fn [cofx]
+                (signing/sign cofx {:tx-obj (if (= symbol :ETH)
+                                              {:to    to-norm
+                                               :from  from-address
+                                               :value amount-hex}
+                                              {:to       (ethereum/normalized-hex address)
+                                               :from     from-address
+                                               :data     (abi-spec/encode
+                                                          "transfer(address,uint256)"
+                                                          [to-norm amount-hex])
+                                               ;;Note: data from qr (eip681)
+                                               :gas      gas
+                                               :gasPrice gasPrice})})))))
 
 (fx/defn set-and-validate-amount-request
   {:events [:wallet.request/set-and-validate-amount]}
@@ -434,6 +466,16 @@
                :to         nil
                :symbol     :ETH
                :from-chat? false})})
+
+(fx/defn finalize-transaction-from-command
+  {:events [:wallet/finalize-transaction-from-command]}
+  [{:keys [db]} account to symbol amount]
+  {:db (assoc db :wallet/prepare-transaction
+              {:from       account
+               :to         to
+               :symbol     symbol
+               :amount     amount
+               :from-command? true})})
 
 (fx/defn qr-scanner-allowed
   {:events [:wallet.send/qr-scanner-allowed]}

@@ -12,3 +12,10 @@
     {::json-rpc/call [{:method "shhext_acceptRequestAddressForTransaction"
                        :params [message-id address]
                        :on-success #(re-frame/dispatch [:transport/message-sent % 1])}]}))
+
+(fx/defn handle-decline-request-address-for-transaction
+  {:events [:commands/decline-request-address-for-transaction]}
+  [cofx message-id]
+  {::json-rpc/call [{:method "shhext_declineRequestAddressForTransaction"
+                     :params [message-id]
+                     :on-success #(re-frame/dispatch [:transport/message-sent % 1])}]})

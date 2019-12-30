@@ -204,7 +204,8 @@
 
 (defn- final-status? [command-state]
   (or (= command-state constants/command-state-request-address-for-transaction-declined)
-      (= command-state constants/command-state-request-transaction-declined)))
+      (= command-state constants/command-state-request-transaction-declined)
+      (= command-state constants/command-state-transaction-sent)))
 
 (defn- command-pending-status
   [command-state direction to]
@@ -237,6 +238,8 @@
                     :t/address-requested
                    (= command-state constants/command-state-request-address-for-transaction-accepted)
                     :t/address-request-accepted
+                   (= command-state constants/command-state-transaction-sent)
+                    :t/transaction-sent
                    (= command-state constants/command-state-request-transaction)
                     :t/address-received)))]])
 
@@ -251,9 +254,8 @@
                        :padding-horizontal 8
                        :margin-right 12
                        :margin-bottom 2}}
-   (case command-state
-     (constants/command-state-request-address-for-transaction-declined
-      constants/command-state-request-transaction-declined)
+   (if (or (= command-state constants/command-state-request-address-for-transaction-declined)
+           (= command-state constants/command-state-request-transaction-declined))
      [vector-icons/icon :tiny-icons/tiny-warning
       {:width 16
        :height 16
@@ -266,11 +268,9 @@
                         :margin-right 4
                         :line-height 16
                         :font-size 13}}
-    (i18n/label (case command-state
-                  (constants/command-state-request-address-for-transaction-declined
-                   constants/command-state-request-transaction-declined)
+    (i18n/label (if (or (= command-state constants/command-state-request-address-for-transaction-declined)
+                        (= command-state constants/command-state-request-transaction-declined))
                   :t/transaction-declined
-                  :transaction-sent
                   :t/status-confirmed))]])
 
 (defn- command-status-and-timestamp
@@ -382,7 +382,8 @@
       [command-status-and-timestamp
        command-state direction to timestamp-str]
       (if outgoing
-        (when (= command-state constants/command-state-request-transaction)
+        (when (or (= command-state constants/command-state-request-transaction)
+                  (= command-state constants/command-state-request-address-for-transaction-accepted))
           [command-actions
            :t/sign-and-send
            #() ;; TODO sign transaction action

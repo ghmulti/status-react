@@ -134,6 +134,8 @@
               :InstallationID installation-id
               :MaxMessageDeliveryAttempts config/max-message-delivery-attempts
               :MailServerConfirmations  config/mailserver-confirmations-enabled?
+              :VerifyTransactionURL "https://ropsten.infura.io/v3/f315575765b14720b32382a61a89341a"
+              :VerifyTransactionChainID 3
               :DataSyncEnabled true
               :PFSEnabled true}
              :RequireTopics (get-topics current-network)

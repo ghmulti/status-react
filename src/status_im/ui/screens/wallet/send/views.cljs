@@ -119,10 +119,14 @@
         [react/view {:flex 1}
          [render-contact to from-chat?]]]
        [toolbar/toolbar
-        {:center {:label               :t/wallet-send
-                  :accessibility-label :send-transaction-bottom-sheet
-                  :disabled?           (not sign-enabled?)
-                  :on-press            #(re-frame/dispatch [:wallet.ui/sign-transaction-button-clicked tx])}}]])))
+        {:center
+         {:label               :t/wallet-send
+          :accessibility-label :send-transaction-bottom-sheet
+          :disabled?           (not sign-enabled?)
+          :on-press            #(re-frame/dispatch
+                                 [(if from-chat?
+                                    :wallet.ui/sign-transaction-button-clicked-from-chat
+                                    :wallet.ui/sign-transaction-button-clicked) tx])}}]])))
 
 (defview prepare-transaction []
   (letsubs [tx [:wallet/prepare-transaction]]
