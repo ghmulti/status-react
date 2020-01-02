@@ -169,6 +169,7 @@
               :persistNavigationState (when js/goog.DEBUG persist-state)
               :loadNavigationState    (when js/goog.DEBUG load-state)}]
             [wallet/prepare-transaction]
+            [wallet/select-account]
             [signing/signing]
             [bottom-sheet]
             [popover/popover]]]))})))

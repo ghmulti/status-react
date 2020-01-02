@@ -70,6 +70,7 @@
    "shhext_acceptRequestAddressForTransaction" {}
    "shhext_declineRequestAddressForTransaction" {}
    "shhext_sendTransaction" {}
+   "shhext_acceptRequestTransaction" {}
    "status_chats" {}
    "wallet_getTransfers" {}
    "wallet_getTokensBalances" {}

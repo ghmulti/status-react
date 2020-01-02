@@ -166,6 +166,9 @@
 (reg-root-key-sub :wallet/custom-token-screen :wallet/custom-token-screen)
 (reg-root-key-sub :wallet/prepare-transaction :wallet/prepare-transaction)
 
+;;commands
+(reg-root-key-sub :commands/select-account :commands/select-account)
+
 ;;ethereum
 (reg-root-key-sub :ethereum/current-block :ethereum/current-block)
 

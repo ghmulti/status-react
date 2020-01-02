@@ -232,15 +232,15 @@
              (= direction :incoming))
       (str (i18n/label :t/shared) " " to)
       (i18n/label (cond
-                   (= command-state constants/command-state-transaction-pending)
+                    (= command-state constants/command-state-transaction-pending)
                     :t/status-pending
-                   (= command-state constants/command-state-request-address-for-transaction)
+                    (= command-state constants/command-state-request-address-for-transaction)
                     :t/address-requested
-                   (= command-state constants/command-state-request-address-for-transaction-accepted)
+                    (= command-state constants/command-state-request-address-for-transaction-accepted)
                     :t/address-request-accepted
-                   (= command-state constants/command-state-transaction-sent)
+                    (= command-state constants/command-state-transaction-sent)
                     :t/transaction-sent
-                   (= command-state constants/command-state-request-transaction)
+                    (= command-state constants/command-state-request-transaction)
                     :t/address-received)))]])
 
 (defn- command-final-status
@@ -303,17 +303,18 @@
                          :font-size 15
                          :line-height 22}}
      (i18n/label accept-label)]]
-   [react/touchable-highlight
-    {:on-press on-decline
-     :style {:border-color colors/gray-lighter
-             :border-top-width 1
-             :margin-horizontal -12
-             :padding-top 10}}
-    [react/text {:style {:text-align :center
-                         :color colors/blue
-                         :font-size 15
-                         :line-height 22}}
-     (i18n/label :t/decline)]]])
+   (when on-decline
+     [react/touchable-highlight
+      {:on-press on-decline
+       :style {:border-color colors/gray-lighter
+               :border-top-width 1
+               :margin-horizontal -12
+               :padding-top 10}}
+      [react/text {:style {:text-align :center
+                           :color colors/blue
+                           :font-size 15
+                           :line-height 22}}
+       (i18n/label :t/decline)]])])
 
 (defn- command-transaction-info
   [contract value]
@@ -346,15 +347,16 @@
 
 (defn calculate-direction [outgoing command-state]
   (cond
-   (= command-state constants/command-state-request-address-for-transaction) (if outgoing :outgoing :incoming)
-   (= command-state constants/command-state-request-address-for-transaction-declined) (if outgoing :incoming :outgoing)
-   (= command-state constants/command-state-request-address-for-transaction-accepted) (if outgoing :incoming :outgoing)
-   (= command-state constants/command-state-request-transaction) (if outgoing :incoming :outgoing)
-   (= command-state constants/command-state-request-transaction-declined) (if outgoing :outgoing :incoming)
-   (= command-state constants/command-state-transaction-sent) (if outgoing :outgoing :incoming)))
+    (= command-state constants/command-state-request-address-for-transaction) (if outgoing :outgoing :incoming)
+    (= command-state constants/command-state-request-address-for-transaction-declined) (if outgoing :incoming :outgoing)
+    (= command-state constants/command-state-request-address-for-transaction-accepted) (if outgoing :incoming :outgoing)
+    (= command-state constants/command-state-request-transaction) (if outgoing :incoming :outgoing)
+    (= command-state constants/command-state-request-transaction-declined) (if outgoing :outgoing :incoming)
+    (= command-state constants/command-state-transaction-sent) (if outgoing :outgoing :incoming)))
 
 (defmethod message-content constants/content-type-command
   [wrapper {:keys [message-id
+                   chat-id
                    outgoing
                    command-parameters
                    timestamp-str] :as message}]
@@ -381,17 +383,23 @@
       [command-transaction-info contract value]
       [command-status-and-timestamp
        command-state direction to timestamp-str]
-      (if outgoing
-        (when (or (= command-state constants/command-state-request-transaction)
-                  (= command-state constants/command-state-request-address-for-transaction-accepted))
+      (when (not outgoing)
+        (cond
+          (= command-state constants/command-state-request-transaction)
           [command-actions
            :t/sign-and-send
-           #() ;; TODO sign transaction action
-           #()])
-        (when (= command-state constants/command-state-request-address-for-transaction)
+           #(re-frame/dispatch [:wallet.ui/sign-transaction-button-clicked-from-command chat-id command-parameters])
+           #()]
+
+          (= command-state constants/command-state-request-address-for-transaction-accepted)
+          [command-actions
+           :t/sign-and-send
+           #(re-frame/dispatch [:wallet.ui/sign-transaction-button-clicked-from-command chat-id command-parameters])]
+
+          (= command-state constants/command-state-request-address-for-transaction)
           [command-actions
            :t/accept-and-share-address
-           #(re-frame/dispatch [:commands/accept-request-address-for-transaction message-id]) ;; TODO select account action
+           #(re-frame/dispatch [:commands/prepare-accept-request-address-for-transaction message])
            #(re-frame/dispatch [:commands/decline-request-address-for-transaction message-id])]))]]))
 
 (defmethod message-content :default

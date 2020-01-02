@@ -57,11 +57,31 @@
      :body        (str body-first-line (:text content))
      :prioritary? (not (chat-model/multi-user-chat? cofx chat-id))}))
 
+(fx/defn rebuild-message-list
+  [{:keys [db]} chat-id]
+  {:db (assoc-in db [:chats chat-id :message-list]
+                 (message-list/add-many nil (vals (get-in db [:chats chat-id :messages]))))})
+
+(fx/defn hide-message
+  "Hide chat message, rebuild message-list"
+  [{:keys [db] :as cofx} chat-id {:keys [seen message-id]}]
+  (fx/merge cofx
+            {:db            (update-in db [:chats chat-id :messages] dissoc message-id)}
+            #(when (not seen)
+               (fx/merge %
+                         {:db (update-in db [:chats chat-id]
+                                         update
+                                         :unviewed-messages-count dec)}
+                         (data-store.messages/mark-messages-seen chat-id [message-id])))
+            (rebuild-message-list chat-id)))
+
 (fx/defn add-message
   [{:keys [db] :as cofx}
-   {{:keys [chat-id message-id timestamp from] :as message} :message
+   {{:keys [chat-id message-id replace timestamp from] :as message} :message
     :keys [current-chat?]}]
   (let [current-public-key (multiaccounts.model/current-public-key cofx)
+        message-to-be-removed (when replace
+                                (get-in db [:chats chat-id :messages replace]))
         prepared-message (prepare-message message chat-id current-chat?)]
     (when (and platform/desktop?
                (not= from current-public-key)
@@ -70,20 +90,23 @@
       (let [{:keys [title body prioritary?]} (build-desktop-notification cofx message)]
         (.displayNotification react/desktop-notification title body prioritary?)))
     (fx/merge cofx
-              {:db            (cond->
-                               (-> db
-                                   ;; We should not be always adding to the list, as it does not make sense
-                                   ;; if the chat has not been initialized, but run into
-                                   ;; some troubles disabling it, so next time
-                                   (update-in [:chats chat-id :messages] assoc message-id prepared-message)
-                                   (update-in [:chats chat-id :message-list] message-list/add prepared-message))
-                                (and (not current-chat?)
-                                     (not= from current-public-key))
-                                (update-in [:chats chat-id :loaded-unviewed-messages-ids]
-                                           (fnil conj #{}) message-id))}
+              (when message-to-be-removed
+                (hide-message chat-id message-to-be-removed))
+              (fn [{:keys [db]}]
+                {:db            (cond->
+                                 (-> db
+                                      ;; We should not be always adding to the list, as it does not make sense
+                                      ;; if the chat has not been initialized, but run into
+                                      ;; some troubles disabling it, so next time
+                                     (update-in [:chats chat-id :messages] assoc message-id prepared-message)
+                                     (update-in [:chats chat-id :message-list] message-list/add prepared-message))
+
+                                  (and (not current-chat?)
+                                       (not= from current-public-key))
+                                  (update-in [:chats chat-id :loaded-unviewed-messages-ids]
+                                             (fnil conj #{}) message-id))})
               (when (and platform/desktop?
                          (not (system-message? prepared-message)))
-
                 (chat-model/update-dock-badge-label)))))
 
 (fx/defn add-received-message
@@ -173,11 +196,6 @@
                                :on-success #(log/debug "re-sent message successfully")
                                :on-error #(log/error "failed to re-send message" %)}]}
             (update-message-status chat-id message-id :sending)))
-
-(fx/defn rebuild-message-list
-  [{:keys [db]} chat-id]
-  {:db (assoc-in db [:chats chat-id :message-list]
-                 (message-list/add-many nil (vals (get-in db [:chats chat-id :messages]))))})
 
 (fx/defn delete-message
   "Deletes chat message, rebuild message-list"

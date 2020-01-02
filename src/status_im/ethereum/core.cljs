@@ -128,3 +128,13 @@
   (and address1 address2
        (= (normalized-hex address1)
           (normalized-hex address2))))
+
+(defn public-key->address [public-key]
+  (let [length (count public-key)
+        normalized-key (case length
+                         132 (str "0x" (subs public-key 4))
+                         130 public-key
+                         128 (str "0x" public-key)
+                         nil)]
+    (when normalized-key
+      (subs (sha3 normalized-key) 26))))
