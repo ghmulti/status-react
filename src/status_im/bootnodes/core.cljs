@@ -19,7 +19,7 @@
    :name    bootnode-name})
 
 (fx/defn fetch [cofx id]
-  (let [network (get-in cofx [:db :network])]
+  (let [network (get-in cofx [:db :networks/current-network])]
     (get-in cofx [:db :multiaccount :custom-bootnodes network id])))
 
 (fx/defn set-input
@@ -47,11 +47,11 @@
     (assoc fxs :dispatch [:navigate-to :edit-bootnode])))
 
 (defn custom-bootnodes-in-use? [{:keys [db] :as cofx}]
-  (let [network (:network db)]
+  (let [network (:networks/current-network db)]
     (get-in db [:multiaccount :custom-bootnodes-enabled? network])))
 
 (fx/defn delete [{{:keys [multiaccount] :as db} :db :as cofx} id]
-  (let [network     (:network db)
+  (let [network     (:networks/current-network db)
         new-multiaccount (update-in multiaccount [:custom-bootnodes network] dissoc id)]
     (fx/merge cofx
               {:db (assoc db :multiaccount new-multiaccount)}
@@ -64,7 +64,7 @@
   [{{:bootnodes/keys [manage] :keys [multiaccount] :as db} :db
     random-id-generator :random-id-generator :as cofx}]
   (let [{:keys [name id url]} manage
-        network (:network db)
+        network (:networks/current-network db)
         bootnode (build
                   (or (:value id) (random-id-generator))
                   (:value name)

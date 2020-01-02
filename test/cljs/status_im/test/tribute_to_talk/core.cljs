@@ -51,10 +51,10 @@
 (def recipient-address "0xdff1a5e4e57d9723b3294e0f4413372e3ea9a8ff")
 
 (def user-cofx
-  {:db {:multiaccount
-        {:address "954d4393515747ea75808a0301fb73317ae1e460"
-         :network "testnet_rpc"
-         :networks/networks {"testnet_rpc" {:config {:NetworkId 3}}}}
+  {:db {:networks/current-network "testnet_rpc"
+        :networks/networks {"testnet_rpc" {:config {:NetworkId 3}}}
+        :multiaccount
+        {:address "954d4393515747ea75808a0301fb73317ae1e460"}
         :tribute-to-talk {:testnet {:snt-amount "1000000000000000000"}}
         :contacts/contacts
         {recipient-pk {:name "bob"
