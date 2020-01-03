@@ -67,8 +67,10 @@
    "shhext_saveContact" {}
    "shhext_verifyENSNames" {}
    "shhext_requestAddressForTransaction" {}
+   "shhext_requestTransaction" {}
    "shhext_acceptRequestAddressForTransaction" {}
    "shhext_declineRequestAddressForTransaction" {}
+   "shhext_declineRequestTransaction" {}
    "shhext_sendTransaction" {}
    "shhext_acceptRequestTransaction" {}
    "status_chats" {}

@@ -165,6 +165,7 @@
 (reg-root-key-sub :wallet.transactions :wallet.transactions)
 (reg-root-key-sub :wallet/custom-token-screen :wallet/custom-token-screen)
 (reg-root-key-sub :wallet/prepare-transaction :wallet/prepare-transaction)
+(reg-root-key-sub :wallet/request-transaction :wallet/request-transaction)
 
 ;;commands
 (reg-root-key-sub :commands/select-account :commands/select-account)
@@ -2036,6 +2037,33 @@
             :balance balance
             :token (assoc token :amount (get balance (:symbol token)))
             :sign-enabled? (and to
+                                (nil? amount-error)
+                                (not (nil? amount))
+                                (not offline?))))))
+
+(re-frame/reg-sub
+ :wallet.request/prepare-transaction-with-balance
+ :<- [:wallet/request-transaction]
+ :<- [:wallet]
+ :<- [:offline?]
+ :<- [:wallet/all-tokens]
+ :<- [:ethereum/chain-keyword]
+ (fn [[{:keys [symbol from to amount-text] :as transaction}
+       wallet offline? all-tokens chain]]
+   (println "TRANSACTION" transaction)
+   (let [balance (get-in wallet [:accounts (:address from) :balance])
+         {:keys [decimals] :as token} (tokens/asset-for all-tokens chain symbol)
+         {:keys [value error]} (wallet.db/parse-amount amount-text decimals)
+         amount  (money/formatted->internal value symbol decimals)
+         {:keys [amount-error] :as transaction-new}
+         (assoc transaction
+                :amount-error error)]
+     (assoc transaction-new
+            :amount amount
+            :balance balance
+            :token (assoc token :amount (get balance (:symbol token)))
+            :sign-enabled? (and to
+                                from
                                 (nil? amount-error)
                                 (not (nil? amount))
                                 (not offline?))))))

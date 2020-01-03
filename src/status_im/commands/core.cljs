@@ -29,3 +29,10 @@
   {::json-rpc/call [{:method "shhext_declineRequestAddressForTransaction"
                      :params [message-id]
                      :on-success #(re-frame/dispatch [:transport/message-sent % 1])}]})
+
+(fx/defn handle-decline-request-transaction
+  {:events [:commands/decline-request-transaction]}
+  [cofx message-id]
+  {::json-rpc/call [{:method "shhext_declineRequestTransaction"
+                     :params [message-id]
+                     :on-success #(re-frame/dispatch [:transport/message-sent % 1])}]})
