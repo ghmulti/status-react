@@ -436,7 +436,6 @@
 (fx/defn sign-transaction-button-clicked-from-request
   {:events  [:wallet.ui/sign-transaction-button-clicked-from-request]}
   [{:keys [db] :as cofx} {:keys [to amount from token gas gasPrice]}]
-  (println "to" to "amount" amount "token" token)
   (let [{:keys [request-parameters]} (:wallet/prepare-transaction db)
         {:keys [symbol address]} token
         amount-hex (str "0x" (abi-spec/number-to-hex amount))

@@ -394,7 +394,7 @@
           (= command-state constants/command-state-request-address-for-transaction-accepted)
           [command-actions
            :t/sign-and-send
-           #(re-frame/dispatch [:wallet.ui/sign-transaction-button-clicked-from-command chat-id command-parameters])]
+           #(re-frame/dispatch [:wallet.ui/accept-request-transaction-button-clicked-from-command chat-id command-parameters])]
 
           (= command-state constants/command-state-request-address-for-transaction)
           [command-actions

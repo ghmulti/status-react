@@ -31,6 +31,7 @@
         "address": "Address",
         "address-received": "Address received",
         "address-requested": "Address requested",
+        "address-request-accepted": "Address request accepted",
 	"advanced": "Advanced",
 	"advanced-settings": "Advanced settings",
 	"agree-by-continuing": "By continuing you agree\n to our ",

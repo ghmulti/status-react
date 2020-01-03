@@ -33,10 +33,10 @@
   (let [{:keys [name icon color]} token]
     [react/touchable-highlight
      {:on-press (when-not request? #(do
-                                     (re-frame/dispatch [:dismiss-keyboard])
-                                     (re-frame/dispatch [:bottom-sheet/show-sheet
-                                                         {:content        (fn [] [sheets/assets (:address from)])
-                                                          :content-height 300}])))}
+                                      (re-frame/dispatch [:dismiss-keyboard])
+                                      (re-frame/dispatch [:bottom-sheet/show-sheet
+                                                          {:content        (fn [] [sheets/assets (:address from)])
+                                                           :content-height 300}])))}
      [react/view {:style               {:flex-direction :row
                                         :align-items    :center
                                         :margin-left    16}
@@ -129,12 +129,12 @@
           :disabled?           (not sign-enabled?)
           :on-press            #(re-frame/dispatch
                                  [(cond
-                                   request?
+                                    request?
                                     :wallet.ui/sign-transaction-button-clicked-from-request
-                                   from-chat?
-                                   :wallet.ui/sign-transaction-button-clicked-from-chat
-                                   :else
-                                   :wallet.ui/sign-transaction-button-clicked) tx])}}]])))
+                                    from-chat?
+                                    :wallet.ui/sign-transaction-button-clicked-from-chat
+                                    :else
+                                    :wallet.ui/sign-transaction-button-clicked) tx])}}]])))
 
 (views/defview request-sheet [_]
   (views/letsubs [{:keys [amount-error amount-text from token to sign-enabled? from-chat?] :as tx}
